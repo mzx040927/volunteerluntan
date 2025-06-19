@@ -1,0 +1,863 @@
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>志愿学时统计系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#00B42A',
+            danger: '#F53F3F',
+            warning: '#FF7D00',
+            info: '#86909C',
+            light: '#F2F3F5',
+            dark: '#1D2129',
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-shadow {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+      }
+      .form-focus {
+        @apply focus:ring-2 focus:ring-primary/30 focus:border-primary;
+      }
+      .btn-hover {
+        @apply hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
+      }
+      .scale-hover {
+        @apply hover:scale-105 transition-transform duration-200;
+      }
+    }
+  </style>
+</head>
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+  <!-- 导航栏 -->
+  <nav id="navbar" class="bg-white shadow-sm transition-all duration-300 fixed w-full z-50">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <a href="#" class="flex-shrink-0 flex items-center">
+            <i class="fa-solid fa-graduation-cap text-primary text-2xl mr-2"></i>
+            <span class="text-xl font-bold text-primary">志愿学时统计系统</span>
+          </a>
+          <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <a href="#home" class="border-b-2 border-primary px-1 pt-1 text-sm font-medium text-primary">首页</a>
+            <a href="#form" class="border-transparent hover:border-primary/50 px-1 pt-1 text-sm font-medium text-gray-500 hover:text-primary transition-colors">填写表单</a>
+            <a href="#statistics" class="border-transparent hover:border-primary/50 px-1 pt-1 text-sm font-medium text-gray-500 hover:text-primary transition-colors">统计数据</a>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <button id="adminBtn" class="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 btn-hover">
+            <i class="fa-solid fa-lock-open mr-2"></i>管理员登录
+          </button>
+          <button id="mobileMenuBtn" class="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-primary hover:bg-gray-100 focus:outline-none">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div id="mobileMenu" class="sm:hidden hidden bg-white border-t">
+      <div class="px-2 pt-2 pb-3 space-y-1">
+        <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-primary bg-primary/10">首页</a>
+        <a href="#form" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-primary hover:bg-gray-50">填写表单</a>
+        <a href="#statistics" class="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-primary hover:bg-gray-50">统计数据</a>
+        <button id="mobileAdminBtn" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-white bg-primary hover:bg-primary/90 mt-2">
+          <i class="fa-solid fa-lock-open mr-2"></i>管理员登录
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主要内容 -->
+  <main class="flex-grow pt-16">
+    <!-- 英雄区域 -->
+    <section id="home" class="relative bg-gradient-to-br from-primary/90 to-primary py-16 md:py-24">
+      <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute inset-0 bg-black/10"></div>
+        <div class="absolute -top-10 -right-10 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-20 -left-10 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="max-w-3xl mx-auto text-center">
+          <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-white leading-tight mb-6">志愿学时统计系统</h1>
+          <p class="text-[clamp(1rem,2vw,1.25rem)] text-white/90 mb-8">
+</p>
+          <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="#form" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-primary bg-white hover:bg-gray-50 btn-hover">
+              <i class="fa-solid fa-pencil mr-2"></i>立即填写
+            </a>
+            <a href="#statistics" class="inline-flex items-center justify-center px-6 py-3 border border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white/10 btn-hover">
+              <i class="fa-solid fa-chart-bar mr-2"></i>查看统计
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="absolute bottom-0 left-0 right-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" class="w-full h-auto">
+          <path fill="#F9FAFB" fill-opacity="1" d="M0,96L48,85.3C96,75,192,53,288,53.3C384,53,480,75,576,80C672,85,768,75,864,69.3C960,64,1056,64,1152,69.3C1248,75,1344,85,1392,90.7L1440,96L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 表单区域 -->
+    <section id="form" class="py-16 bg-white">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto">
+          <div class="text-center mb-12">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-gray-900 mb-4">填写志愿学时信息</h2>
+            <p class="text-lg text-gray-600">请填写以下信息，完成后提交等待管理员审批</p>
+          </div>
+          
+          <div id="formContainer" class="bg-white rounded-xl shadow-sm p-8 border border-gray-100 card-shadow">
+            <form id="hourForm" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="name" class="block text-sm font-medium text-gray-700 mb-1">姓名 <span class="text-danger">*</span></label>
+                  <input type="text" id="name" name="name" required="" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm form-focus" placeholder="请输入您的姓名">
+                </div>
+                
+                <div>
+                  <label for="studentId" class="block text-sm font-medium text-gray-700 mb-1">学号 <span class="text-danger">*</span></label>
+                  <input type="text" id="studentId" name="studentId" required="" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm form-focus" placeholder="请输入您的学号">
+                </div>
+              </div>
+              
+              <div>
+                <label for="school" class="block text-sm font-medium text-gray-700 mb-1">项目组 <span class="text-danger">*</span></label>
+                <input type="text" id="school" name="school" required="" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm form-focus" placeholder="请输入项目组名称">
+              </div>
+              
+              <div>
+                <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">志愿时长（小时） <span class="text-danger">*</span></label>
+                <input type="number" id="duration" name="duration" min="0.1" step="0.1" required="" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm form-focus" placeholder="请输入志愿时长">
+              </div>
+              
+              <div class="pt-2">
+                <button type="submit" id="submitBtn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary hover:bg-primary/90 btn-hover">
+                  <i class="fa-solid fa-paper-plane mr-2"></i>提交信息
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          <div id="successMessage" class="hidden mt-8 bg-secondary/10 border border-secondary/30 rounded-xl p-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="fa-solid fa-check-circle text-secondary text-xl"></i>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-secondary">提交成功</h3>
+                <div class="mt-2 text-sm text-secondary/80">
+                  <p>您的志愿学时信息已成功提交，等待管理员审批。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 统计区域 -->
+    <section id="statistics" class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-gray-900 mb-4">统计数据</h2>
+          <p class="text-lg text-gray-600">查看已审批通过的志愿学时统计信息</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white rounded-xl p-6 shadow-sm card-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">总提交数</p>
+                <p id="totalSubmissions" class="text-3xl font-bold text-gray-900 mt-1">0</p>
+              </div>
+              <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-clipboard-list text-primary"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl p-6 shadow-sm card-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">已通过</p>
+                <p id="approvedCount" class="text-3xl font-bold text-gray-900 mt-1">0</p>
+              </div>
+              <div class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-check text-secondary"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl p-6 shadow-sm card-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">总志愿时长</p>
+                <p id="totalHours" class="text-3xl font-bold text-gray-900 mt-1">0 小时</p>
+              </div>
+              <div class="w-12 h-12 bg-info/10 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-clock text-info"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
+          <!-- 学时分布图表已删除 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 管理员区域 -->
+    <section id="adminSection" class="py-16 bg-white hidden">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-5xl mx-auto">
+          <div class="text-center mb-12">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-gray-900 mb-4">管理员面板</h2>
+            <p class="text-lg text-gray-600">审批志愿学时信息并管理数据</p>
+          </div>
+          
+          <div class="flex justify-between items-center mb-6">
+            <div class="relative">
+              <input type="text" id="searchInput" placeholder="搜索姓名、学号或项目组..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm form-focus w-full md:w-80">
+              <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </div>
+            
+            <div class="flex space-x-2">
+              <button id="filterAll" class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white">全部</button>
+              <button id="filterPending" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700">待审批</button>
+              <button id="filterApproved" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700">已通过</button>
+              <button id="exportExcel" class="px-4 py-2 text-sm font-medium rounded-md bg-secondary text-white">
+                <i class="fa-solid fa-download mr-1"></i>导出Excel
+              </button>
+              <button id="deleteAllBtn" class="px-4 py-2 text-sm font-medium rounded-md bg-danger text-white">
+                <i class="fa-solid fa-trash mr-1"></i>删除所有
+              </button>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 card-shadow">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      姓名
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      学号
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      项目组
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      志愿时长
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      状态
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="adminTableBody" class="bg-white divide-y divide-gray-200">
+                  <!-- 表格内容将通过JavaScript动态生成 -->
+                </tbody>
+              </table>
+            </div>
+            
+            <div id="emptyState" class="hidden py-12 text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-inbox text-gray-400 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 mb-1">暂无数据</h3>
+              <p class="text-gray-500 max-w-md mx-auto">没有找到符合条件的志愿学时信息</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-gray-900 text-white py-12">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div>
+          <div class="flex items-center mb-4">
+            <i class="fa-solid fa-graduation-cap text-primary text-2xl mr-2"></i>
+            <span class="text-xl font-bold">志愿学时统计系统</span>
+          </div>
+          <p class="text-gray-400 mb-4">便捷高效的志愿学时信息收集与管理平台</p>
+          <div class="flex space-x-4">
+            <a href="#" class="text-gray-400 hover:text-white transition-colors">
+              <i class="fa-brands fa-weixin text-xl"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors">
+              <i class="fa-brands fa-weibo text-xl"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors">
+              <i class="fa-brands fa-qq text-xl"></i>
+            </a>
+          </div>
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-semibold mb-4">快速链接</h3>
+          <ul class="space-y-2">
+            <li><a href="#home" class="text-gray-400 hover:text-white transition-colors">首页</a></li>
+            <li><a href="#form" class="text-gray-400 hover:text-white transition-colors">填写表单</a></li>
+            <li><a href="#statistics" class="text-gray-400 hover:text-white transition-colors">统计数据</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+          <ul class="space-y-2">
+            <li class="flex items-center text-gray-400">
+              <i class="fa-solid fa-envelope mr-2"></i>
+              <span>contact@example.com</span>
+            </li>
+            <li class="flex items-center text-gray-400">
+              <i class="fa-solid fa-phone mr-2"></i>
+              <span>010-12345678</span>
+            </li>
+            <li class="flex items-center text-gray-400">
+              <i class="fa-solid fa-map-marker-alt mr-2"></i>
+              <span>北京市海淀区中关村大街</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+        <p>© 2025 志愿学时统计系统. 保留所有权利.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 管理员登录模态框 -->
+  <div id="adminModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    <div class="absolute inset-0 overflow-y-auto">
+      <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left shadow-xl transition-all">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 sm:mx-0 sm:h-10 sm:w-10">
+              <i class="fa-solid fa-user-secret text-primary text-xl"></i>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+              <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                管理员登录
+              </h3>
+              <div class="mt-2">
+                <form id="adminLoginForm" class="space-y-4">
+                  <div>
+                    <label for="adminUsername" class="block text-sm font-medium text-gray-700">用户名</label>
+                    <input type="text" id="adminUsername" name="adminUsername" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm form-focus" placeholder="请输入用户名">
+                  </div>
+                  <div>
+                    <label for="adminPassword" class="block text-sm font-medium text-gray-700">密码</label>
+                    <input type="password" id="adminPassword" name="adminPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm form-focus" placeholder="请输入密码">
+                  </div>
+                  <div class="flex items-center justify-end">
+                    <button type="button" id="closeAdminModal" class="mr-3 inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                      取消
+                    </button>
+                    <button type="submit" class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                      登录
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通知提示 -->
+  <div id="notification" class="fixed top-4 right-4 z-50 transform translate-x-full transition-transform duration-300 flex items-center p-4 rounded-lg shadow-lg bg-white max-w-sm">
+    <div id="notificationIcon" class="flex-shrink-0 mr-3 w-6 h-6 flex items-center justify-center rounded-full">
+      <i id="notificationIconContent" class="text-white"></i>
+    </div>
+    <div class="flex-1">
+      <p id="notificationMessage" class="text-sm font-medium"></p>
+    </div>
+    <button id="closeNotification" class="ml-4 text-gray-400 hover:text-gray-600">
+      <i class="fa-solid fa-times"></i>
+    </button>
+  </div>
+
+  <script>
+    // 数据存储到localStorage
+    const STORAGE_KEY = 'volunteer_hour_data';
+    
+    // 从localStorage加载数据
+    function loadData() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    }
+    
+    // 保存数据到localStorage
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(hourData));
+    }
+    
+    // 初始化数据
+    let hourData = loadData();
+    const adminCredentials = {
+      username: 'admin',
+      password: 'admin123'
+    };
+    
+    // DOM 元素
+    const hourForm = document.getElementById('hourForm');
+    const successMessage = document.getElementById('successMessage');
+    const adminBtn = document.getElementById('adminBtn');
+    const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+    const adminModal = document.getElementById('adminModal');
+    const closeAdminModal = document.getElementById('closeAdminModal');
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    const adminSection = document.getElementById('adminSection');
+    const adminTableBody = document.getElementById('adminTableBody');
+    const emptyState = document.getElementById('emptyState');
+    const searchInput = document.getElementById('searchInput');
+    const filterAll = document.getElementById('filterAll');
+    const filterPending = document.getElementById('filterPending');
+    const filterApproved = document.getElementById('filterApproved');
+    const exportExcel = document.getElementById('exportExcel');
+    const navbar = document.getElementById('navbar');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const notification = document.getElementById('notification');
+    const notificationMessage = document.getElementById('notificationMessage');
+    const notificationIcon = document.getElementById('notificationIcon');
+    const notificationIconContent = document.getElementById('notificationIconContent');
+    const closeNotification = document.getElementById('closeNotification');
+    const totalSubmissions = document.getElementById('totalSubmissions');
+    const approvedCount = document.getElementById('approvedCount');
+    const totalHours = document.getElementById('totalHours');
+    const deleteAllBtn = document.getElementById('deleteAllBtn');
+    
+    // 导航栏滚动效果
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 10) {
+        navbar.classList.add('shadow-md', 'bg-white/95', 'backdrop-blur-sm');
+        navbar.classList.remove('shadow-sm', 'bg-white');
+      } else {
+        navbar.classList.remove('shadow-md', 'bg-white/95', 'backdrop-blur-sm');
+        navbar.classList.add('shadow-sm', 'bg-white');
+      }
+    });
+    
+    // 移动端菜单
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // 平滑滚动
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 80,
+            behavior: 'smooth'
+          });
+          
+          // 关闭移动端菜单
+          if (!mobileMenu.classList.contains('hidden')) {
+            mobileMenu.classList.add('hidden');
+          }
+        }
+      });
+    });
+    
+    // 表单提交处理
+    hourForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('name').value.trim();
+      const studentId = document.getElementById('studentId').value.trim();
+      const school = document.getElementById('school').value.trim();
+      const duration = parseFloat(document.getElementById('duration').value);
+      
+      // 验证表单
+      if (!name || !studentId || !school || isNaN(duration) || duration <= 0) {
+        showNotification('请填写完整且有效的信息', 'error');
+        return;
+      }
+      
+      // 创建新记录
+      const newRecord = {
+        id: Date.now(),
+        name,
+        studentId,
+        school,
+        duration,
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      };
+      
+      // 添加到数据中
+      hourData.push(newRecord);
+      
+      // 保存数据
+      saveData();
+      
+      // 重置表单
+      hourForm.reset();
+      
+      // 显示成功消息
+      successMessage.classList.remove('hidden');
+      
+      // 更新统计
+      updateStatistics();
+      
+      // 显示通知
+      showNotification('提交成功，等待管理员审批', 'success');
+      
+      // 滚动到成功消息
+      setTimeout(() => {
+        successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    });
+    
+    // 管理员登录模态框
+    adminBtn.addEventListener('click', () => {
+      adminModal.classList.remove('hidden');
+    });
+    
+    mobileAdminBtn.addEventListener('click', () => {
+      adminModal.classList.remove('hidden');
+      mobileMenu.classList.add('hidden');
+    });
+    
+    closeAdminModal.addEventListener('click', () => {
+      adminModal.classList.add('hidden');
+    });
+    
+    // 点击模态框外部关闭
+    adminModal.addEventListener('click', (e) => {
+      if (e.target === adminModal) {
+        adminModal.classList.add('hidden');
+      }
+    });
+    
+    // 管理员登录
+    adminLoginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('adminUsername').value;
+      const password = document.getElementById('adminPassword').value;
+      
+      if (username === adminCredentials.username && password === adminCredentials.password) {
+        adminModal.classList.add('hidden');
+        adminSection.classList.remove('hidden');
+        updateAdminTable();
+        showNotification('登录成功', 'success');
+        
+        // 滚动到管理员区域
+        setTimeout(() => {
+          adminSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      } else {
+        showNotification('用户名或密码错误', 'error');
+      }
+    });
+    
+    // 更新管理员表格
+    function updateAdminTable(filteredData = null) {
+      const dataToShow = filteredData || hourData;
+      adminTableBody.innerHTML = '';
+      
+      if (dataToShow.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      
+      dataToShow.forEach(record => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 transition-colors';
+        row.setAttribute('data-id', record.id);
+        
+        const statusClass = record.status === 'approved' 
+          ? 'bg-secondary/10 text-secondary' 
+          : 'bg-warning/10 text-warning';
+        const statusText = record.status === 'approved' ? '已通过' : '待审批';
+        
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+              <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">${record.name}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${record.studentId}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${record.school}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${record.duration} 小时</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+              ${statusText}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${record.status === 'pending' ? `
+              <button class="approve-btn text-secondary hover:text-secondary/80 mr-3">
+                <i class="fa-solid fa-check-circle mr-1"></i>通过
+              </button>
+              <button class="delete-btn text-danger hover:text-danger/80">
+                <i class="fa-solid fa-trash mr-1"></i>删除
+              </button>
+            ` : `
+              <button class="delete-btn text-danger hover:text-danger/80">
+                <i class="fa-solid fa-trash mr-1"></i>删除
+              </button>
+            `}
+          </td>
+        `;
+        
+        adminTableBody.appendChild(row);
+      });
+      
+      // 添加审批和删除事件监听
+      document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const row = btn.closest('tr');
+          const id = parseInt(row.getAttribute('data-id'));
+          approveRecord(id);
+        });
+      });
+      
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const row = btn.closest('tr');
+          const id = parseInt(row.getAttribute('data-id'));
+          deleteRecord(id);
+        });
+      });
+    }
+    
+    // 审批记录
+    function approveRecord(id) {
+      const recordIndex = hourData.findIndex(record => record.id === id);
+      if (recordIndex !== -1) {
+        hourData[recordIndex].status = 'approved';
+        // 保存数据
+        saveData();
+        updateAdminTable();
+        updateStatistics();
+        showNotification('审批成功', 'success');
+      }
+    }
+    
+    // 删除记录
+    function deleteRecord(id) {
+      if (confirm('确定要删除这条记录吗？')) {
+        hourData = hourData.filter(record => record.id !== id);
+        // 保存数据
+        saveData();
+        updateAdminTable();
+        updateStatistics();
+        showNotification('删除成功', 'success');
+      }
+    }
+    
+    // 删除所有记录
+    function deleteAllRecords() {
+      if (hourData.length === 0) {
+        showNotification('没有记录可删除', 'info');
+        return;
+      }
+      
+      if (confirm('警告：您确定要删除所有记录吗？此操作不可撤销！')) {
+        hourData = [];
+        // 保存数据
+        saveData();
+        updateAdminTable();
+        updateStatistics();
+        showNotification('所有记录已删除', 'success');
+      }
+    }
+    
+    // 搜索功能
+    searchInput.addEventListener('input', () => {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      if (!searchTerm) {
+        updateAdminTable();
+        return;
+      }
+      
+      const filteredData = hourData.filter(record => 
+        record.name.toLowerCase().includes(searchTerm) ||
+        record.studentId.toLowerCase().includes(searchTerm) ||
+        record.school.toLowerCase().includes(searchTerm)
+      );
+      
+      updateAdminTable(filteredData);
+    });
+    
+    // 筛选功能
+    filterAll.addEventListener('click', () => {
+      setActiveFilter(filterAll);
+      updateAdminTable();
+    });
+    
+    filterPending.addEventListener('click', () => {
+      setActiveFilter(filterPending);
+      const pendingData = hourData.filter(record => record.status === 'pending');
+      updateAdminTable(pendingData);
+    });
+    
+    filterApproved.addEventListener('click', () => {
+      setActiveFilter(filterApproved);
+      const approvedData = hourData.filter(record => record.status === 'approved');
+      updateAdminTable(approvedData);
+    });
+    
+    // 设置活动筛选按钮样式
+    function setActiveFilter(button) {
+      [filterAll, filterPending, filterApproved].forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-white');
+        btn.classList.add('bg-gray-100', 'text-gray-700');
+      });
+      
+      button.classList.remove('bg-gray-100', 'text-gray-700');
+      button.classList.add('bg-primary', 'text-white');
+    }
+    
+    // 导出Excel
+    exportExcel.addEventListener('click', () => {
+      const approvedData = hourData.filter(record => record.status === 'approved');
+      
+      if (approvedData.length === 0) {
+        showNotification('没有可导出的已审批数据', 'warning');
+        return;
+      }
+      
+      // 准备导出数据
+      const exportData = approvedData.map(record => ({
+        '姓名': record.name,
+        '学号': record.studentId,
+        '项目组': record.school,
+        '志愿时长(小时)': record.duration,
+        '审批状态': record.status === 'approved' ? '已通过' : '待审批',
+        '提交时间': new Date(record.timestamp).toLocaleString()
+      }));
+      
+      // 创建工作簿和工作表
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "志愿学时统计数据");
+      
+      // 导出
+      XLSX.writeFile(wb, "志愿学时统计数据.xlsx");
+      showNotification('导出成功', 'success');
+    });
+    
+    // 删除所有按钮点击事件
+    deleteAllBtn.addEventListener('click', deleteAllRecords);
+    
+    // 显示通知
+    function showNotification(message, type = 'info') {
+      notificationMessage.textContent = message;
+      
+      // 设置通知类型样式
+      if (type === 'success') {
+        notificationIcon.className = 'flex-shrink-0 mr-3 w-6 h-6 flex items-center justify-center rounded-full bg-secondary';
+        notificationIconContent.className = 'fa-solid fa-check text-white';
+      } else if (type === 'error') {
+        notificationIcon.className = 'flex-shrink-0 mr-3 w-6 h-6 flex items-center justify-center rounded-full bg-danger';
+        notificationIconContent.className = 'fa-solid fa-exclamation-circle text-white';
+      } else if (type === 'warning') {
+        notificationIcon.className = 'flex-shrink-0 mr-3 w-6 h-6 flex items-center justify-center rounded-full bg-warning';
+        notificationIconContent.className = 'fa-solid fa-exclamation-triangle text-white';
+      } else {
+        notificationIcon.className = 'flex-shrink-0 mr-3 w-6 h-6 flex items-center justify-center rounded-full bg-primary';
+        notificationIconContent.className = 'fa-solid fa-info-circle text-white';
+      }
+      
+      // 显示通知
+      notification.classList.remove('translate-x-full');
+      
+      // 3秒后自动关闭
+      setTimeout(() => {
+        notification.classList.add('translate-x-full');
+      }, 3000);
+    }
+    
+    // 关闭通知
+    closeNotification.addEventListener('click', () => {
+      notification.classList.add('translate-x-full');
+    });
+    
+    // 更新统计信息
+    function updateStatistics() {
+      const total = hourData.length;
+      const approved = hourData.filter(record => record.status === 'approved').length;
+      const totalHoursValue = hourData
+        .filter(record => record.status === 'approved')
+        .reduce((sum, record) => sum + record.duration, 0);
+      
+      totalSubmissions.textContent = total;
+      approvedCount.textContent = approved;
+      totalHours.textContent = totalHoursValue.toFixed(1) + ' 小时';
+    }
+    
+    // 初始化页面
+    function initPage() {
+      // 更新统计信息
+      updateStatistics();
+      
+      // 如果有数据，更新管理员表格（如果管理员已登录）
+      if (adminSection && !adminSection.classList.contains('hidden')) {
+        updateAdminTable();
+      }
+    }
+    
+    // 页面加载完成后初始化
+    window.addEventListener('DOMContentLoaded', initPage);
+  </script>
+
+
+</body></html>
